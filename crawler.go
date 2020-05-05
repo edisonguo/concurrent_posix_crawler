@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/json"
-  "fmt"
+	"fmt"
 	"os"
 	"path"
 	"regexp"
@@ -61,7 +61,7 @@ func readDir(path string) ([]os.FileInfo, error) {
 func (pc *PosixCrawler) outputResult() {
 	for info := range pc.Outputs {
 		out, _ := json.Marshal(info)
-		fmt.Printf("%v\n", string(out))
+		fmt.Printf("%s\n", string(out))
 	}
 }
 
@@ -125,13 +125,15 @@ func main() {
 
 	rootDir := os.Args[1]
 	var pattern string
+	conc := 4
 
 	if len(os.Args) > 2 {
 		flagSet := flag.NewFlagSet("Usage", flag.ExitOnError)
 		flagSet.StringVar(&pattern, "regexp", "", "Crawl regexp match")
+		flagSet.IntVar(&conc, "conc", 4, "Concurrency of crawler")
 
 		flagSet.Parse(os.Args[2:])
 	}
-	crawler := NewPosixCrawler(2, pattern)
+	crawler := NewPosixCrawler(conc, pattern)
 	crawler.Crawl(rootDir)
 }
