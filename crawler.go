@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"log"
+  "fmt"
 	"os"
 	"path"
 	"regexp"
@@ -61,7 +61,7 @@ func readDir(path string) ([]os.FileInfo, error) {
 func (pc *PosixCrawler) outputResult() {
 	for info := range pc.Outputs {
 		out, _ := json.Marshal(info)
-		log.Printf("%v", string(out))
+		fmt.Printf("%v\n", string(out))
 	}
 }
 
