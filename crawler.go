@@ -27,6 +27,7 @@ type PosixInfo struct {
 type PosixCrawler struct {
 	SubDirs   chan string
 	Outputs   chan *PosixInfo
+	Error     chan error
 	wg        sync.WaitGroup
 	concLimit chan bool
 	pattern   *regexp.Regexp
@@ -36,6 +37,7 @@ func NewPosixCrawler(conc int, pattern string) *PosixCrawler {
 	crawler := &PosixCrawler{
 		SubDirs:   make(chan string, 4096),
 		Outputs:   make(chan *PosixInfo, 4096),
+		Error:     make(chan error, 100),
 		wg:        sync.WaitGroup{},
 		concLimit: make(chan bool, conc),
 	}
@@ -70,6 +72,10 @@ func (pc *PosixCrawler) crawlDir(currPath string) {
 	defer func() { <-pc.concLimit }()
 	files, err := readDir(currPath)
 	if err != nil {
+		select {
+		case pc.Error <- err:
+		default:
+		}
 		return
 	}
 
@@ -106,16 +112,28 @@ func (pc *PosixCrawler) crawlDir(currPath string) {
 
 }
 
-func (pc *PosixCrawler) Crawl(currPath string) {
+func (pc *PosixCrawler) Crawl(currPath string) error {
 	go pc.outputResult()
 
 	pc.wg.Add(1)
 	pc.concLimit <- false
 	pc.crawlDir(currPath)
 	pc.wg.Wait()
-	close(pc.Outputs)
 
+	close(pc.Outputs)
 	pc.outputResult()
+
+	close(pc.Error)
+	var errors []string
+	for err := range pc.Error {
+		errors = append(errors, err.Error())
+	}
+
+	if len(errors) > 0 {
+		return fmt.Errorf(strings.Join(errors, "\n"))
+	}
+
+	return nil
 }
 
 func main() {
@@ -135,5 +153,6 @@ func main() {
 		flagSet.Parse(os.Args[2:])
 	}
 	crawler := NewPosixCrawler(conc, pattern)
-	crawler.Crawl(rootDir)
+	err := crawler.Crawl(rootDir)
+	os.Stderr.Write([]byte(err.Error() + "\n"))
 }
