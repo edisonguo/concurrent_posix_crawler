@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/md5"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -23,6 +24,7 @@ type PosixInfo struct {
 	GID      uint32    `json:"gid"`
 	MTime    time.Time `json:"mtime"`
 	CTime    time.Time `json:"ctime"`
+	ID       string    `json:"id"`
 }
 
 type PosixCrawler struct {
@@ -127,6 +129,7 @@ func (pc *PosixCrawler) crawlDir(currPath string) {
 		}
 
 		stat := fi.Sys().(*syscall.Stat_t)
+		fileSignature := fmt.Sprintf("%s%d%d%d%d", filePath, stat.Ino, stat.Size, stat.Mtim.Sec, stat.Mtim.Nsec)
 		info := &PosixInfo{
 			FilePath: filePath,
 			INode:    stat.Ino,
@@ -135,8 +138,8 @@ func (pc *PosixCrawler) crawlDir(currPath string) {
 			GID:      stat.Gid,
 			MTime:    time.Unix(int64(stat.Mtim.Sec), int64(stat.Mtim.Nsec)).UTC(),
 			CTime:    time.Unix(int64(stat.Ctim.Sec), int64(stat.Ctim.Nsec)).UTC(),
+			ID:       fmt.Sprintf("%x", md5.Sum([]byte(fileSignature))),
 		}
-
 		pc.Outputs <- info
 	}
 }
