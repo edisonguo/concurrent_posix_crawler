@@ -24,7 +24,7 @@ type PosixInfo struct {
 	GID      uint32    `json:"gid"`
 	MTime    time.Time `json:"mtime"`
 	CTime    time.Time `json:"ctime"`
-	ID       string    `json:"id"`
+	ID       string    `json:"file_id"`
 }
 
 type PosixCrawler struct {
